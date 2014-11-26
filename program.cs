@@ -1,78 +1,62 @@
 // For Directory.GetFiles and Directory.GetDirectories 
 // For File.Exists, Directory.Exists 
+
+// fsutil file createnew test.txt 52428800 für dummyfiles
+
 using System;
 using System.IO;
+using System.Linq;
 
-public class FolderCheck
+public class EmailFolderProcessor
 {
     static string path = "C:\\neu";
-    static int depth = 3;
-    static int actualDepth;
     static long byteCount;
-    static string order;
 
     public static void Main()
     {
-        if (File.Exists(path))
-        {
-            ProcessFile(path); // This path is a file
-        }
-        else if (Directory.Exists(path))
-        {
-            ProcessDirectory(path); // This path is a directory
-        }
-        else
-        {
-            Console.WriteLine("{0} is not a valid file or directory.", path);
-        }
-        Console.WriteLine(CountResult(byteCount));
+        byteCount = GetFileSizeSumFromDirectory(path);
+        Console.WriteLine("Press any key!");
         Console.ReadKey();
     }
-    public static void ProcessDirectory(string targetDirectory)
+    public static long GetFileSizeSumFromDirectory(string searchDirectory)
     {
-            // Process the list of files found in the directory. 
-            string[] arrayOfFiles = Directory.GetFiles(targetDirectory);
-            foreach (string fileName in arrayOfFiles)
-                ProcessFile(fileName);
 
-            // Recurse into subdirectories of this directory. 
-            string[] subdirectoryEntries = Directory.GetDirectories(targetDirectory);
-            foreach (string subdirectory in subdirectoryEntries)
-                ProcessDirectory(subdirectory);
-    }
 
-    // Insert logic for processing found files here. Now only filecounter++ to get amount of files
-    public static void ProcessFile(string fileName)
-    {
-       FileInfo info = new FileInfo(fileName);
-       byteCount += info.Length;
+        var files = Directory.EnumerateFiles(searchDirectory);
+
+        // get the sizeof all files in the current directory
+        var currentSize = (from file in files let fileInfo = new FileInfo(file) select fileInfo.Length).Sum();
+        
+        var directories = Directory.EnumerateDirectories(searchDirectory);
+
+        // get the size of all files in all subdirectories
+        var subDirSize = (from directory in directories select GetFileSizeSumFromDirectory(directory)).Sum();
+        DirectoryInfo info = new DirectoryInfo(@searchDirectory);
+        Console.Write(info);
+        Console.WriteLine(" " + CountResult(currentSize + subDirSize));
+        return currentSize + subDirSize;
     }
 
     public static string CountResult(long byteCount)
     {
-        if (byteCount < 1024)
-        {
-            order = "B";
-        }
-        else if (byteCount < 1048576)
-        {
-            order = "KB";
-            byteCount = byteCount / 1024;
-        }
-        else if (byteCount < 1073741824)
-        {
-            order = "MB";
-            byteCount = byteCount / 1048576;
+        string answer = "";
 
-        }
-        else if (byteCount >= 1073741824)
+        if (byteCount >= 1073741824)
         {
-            order = "GB";
-            byteCount = byteCount / 1073741824;
+            answer = byteCount / 1073741824 + "." + byteCount % 1073741824 + " GB";
         }
-        string result = byteCount + " " + order;
-        return result;
+        else if (byteCount >= 1048576)
+        {
+            answer = byteCount / 1048576 + "." + byteCount % 1048576 + " MB";
+        }
+        else if (byteCount >= 1024)
+        {
+            answer = byteCount / 1024 + "." + byteCount % 1024 + " KB";
+        }
+        else if (byteCount > 1)
+        {
+            answer = byteCount + " B";
+        }
+        return answer;
     }
-
-
 }
